@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+        }
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cccc;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #004400; }
+        .error { background: #440000; }
+        .info { background: #000044; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Camera Access Test</h1>
+    
+    <div class="container">
+        <h2>Browser Compatibility Check</h2>
+        <div id="compatibility"></div>
+    </div>
+
+    <div class="container">
+        <h2>Camera Test</h2>
+        <button id="startBtn">Start Camera</button>
+        <button id="stopBtn" disabled>Stop Camera</button>
+        <button id="snapshotBtn" disabled>Take Snapshot</button>
+        
+        <div id="status"></div>
+        
+        <video id="video" autoplay playsinline muted style="display: none;"></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+
+    <div class="container">
+        <h2>Troubleshooting</h2>
+        <ul>
+            <li><strong>HTTPS Required:</strong> Camera access requires HTTPS in production</li>
+            <li><strong>Localhost Exception:</strong> HTTP works on localhost for development</li>
+            <li><strong>Permissions:</strong> Browser will ask for camera permission</li>
+            <li><strong>Camera in Use:</strong> Make sure no other app is using the camera</li>
+        </ul>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        const status = document.getElementById('status');
+        const compatibility = document.getElementById('compatibility');
+        
+        let stream = null;
+
+        // Check browser compatibility
+        function checkCompatibility() {
+            const checks = [
+                { name: 'getUserMedia API', test: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
+                { name: 'Video Element', test: () => !!document.createElement('video').canPlayType },
+                { name: 'Canvas API', test: () => !!document.createElement('canvas').getContext },
+                { name: 'HTTPS/Localhost', test: () => location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' }
+            ];
+
+            let html = '<h3>Compatibility Results:</h3>';
+            checks.forEach(check => {
+                const result = check.test();
+                html += `<div class="status ${result ? 'success' : 'error'}">
+                    ${result ? '✅' : '❌'} ${check.name}: ${result ? 'Supported' : 'Not Supported'}
+                </div>`;
+            });
+            compatibility.innerHTML = html;
+        }
+
+        function showStatus(message, type = 'info') {
+            status.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function startCamera() {
+            try {
+                showStatus('Requesting camera access...', 'info');
+                
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    }
+                });
+
+                video.srcObject = stream;
+                video.style.display = 'block';
+                
+                video.onloadedmetadata = () => {
+                    showStatus(`✅ Camera started successfully! Resolution: ${video.videoWidth}x${video.videoHeight}`, 'success');
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    snapshotBtn.disabled = false;
+                };
+
+            } catch (error) {
+                console.error('Camera error:', error);
+                let errorMsg = 'Camera access failed: ';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg += 'Permission denied. Please allow camera access.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg += 'No camera found. Please connect a camera.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg += 'Camera not supported in this browser.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg += 'Camera is being used by another application.';
+                } else {
+                    errorMsg += error.message;
+                }
+                
+                showStatus(errorMsg, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            video.style.display = 'none';
+            showStatus('Camera stopped', 'info');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            snapshotBtn.disabled = true;
+        }
+
+        function takeSnapshot() {
+            if (!stream) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = `snapshot-${new Date().toISOString()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            
+            showStatus('Snapshot saved!', 'success');
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+        snapshotBtn.addEventListener('click', takeSnapshot);
+
+        // Initialize
+        checkCompatibility();
+        showStatus('Click "Start Camera" to test camera access', 'info');
+    </script>
+</body>
+</html>
