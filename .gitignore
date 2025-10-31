@@ -1,5 +1,3 @@
-!defect_test_models/best.pt
-
 defect_test_models/NEU-DET/
 *.zip
 
@@ -20,7 +18,8 @@ __pycache__/
 # Training outputs
 defect_test_models/runs/
 defect_test_models/test_results/
-*.cache
+defect_test_models/NEU-DET/
+!defect_test_models/best.pt
 
 # Jupyter
 .ipynb_checkpoints/
