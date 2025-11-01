@@ -1,7 +1,6 @@
 defect_test_models/NEU-DET/
 *.zip
 
-
 backend/venv/
 backend/.env/
 .env
@@ -15,16 +14,14 @@ __pycache__/
 *.so
 .Python
 
-# Training outputs
+# Training outputs - specific subdirectories only
 defect_test_models/runs/
 defect_test_models/test_results/
 defect_test_models/NEU-DET/
-!defect_test_models/best.pt
 
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
-
 
 node_modules/
 defect detection/project/node_modules/
@@ -46,8 +43,6 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-
-
 .vscode/
 .idea/
 *.swp
@@ -56,8 +51,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-
 *.log
 *.tmp
 .cache/
-EOF
