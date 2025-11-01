@@ -54,6 +54,10 @@ async def root():
 async def health_check():
     return {"status": "healthy", "model_loaded": model is not None}
 
+@app.get("/keep-alive")
+async def keep_alive():
+    return {"status": "alive"}
+
 @app.post("/predict")
 async def predict_defects(file: UploadFile = File(...)):
     """
