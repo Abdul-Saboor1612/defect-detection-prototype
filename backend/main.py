@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from ultralytics import YOLO
+from huggingface_hub import hf_hub_download
 import cv2
 import numpy as np
 from PIL import Image
@@ -11,16 +12,19 @@ import os
 from typing import List, Dict, Any
 import uvicorn
 
+
 app = FastAPI(title="Defect Detection API", version="1.0.0")
+
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://ainspect.netlify.app"],  # Frontend URLs
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://ainspect.netlify.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Global model variable
 model = None
@@ -28,11 +32,50 @@ model = None
 # Defect class names from neudet.yaml
 DEFECT_CLASSES = ['crazing', 'inclusion', 'patches', 'pitted_surface', 'rolled-in_scale', 'scratches']
 
+# Model configuration (UPDATE THESE WITH YOUR HUGGING FACE REPO)
+HF_REPO_ID = "Ironman1612/defect-detection-model"  # Change this to your HF repo
+MODEL_FILENAME = "best.pt"
+
+
+def ensure_model_exists():
+    """Download model from Hugging Face if it doesn't exist locally"""
+    try:
+        # Local model path
+        local_model_dir = os.path.join(os.path.dirname(__file__), '..', 'defect_test_models')
+        os.makedirs(local_model_dir, exist_ok=True)
+        
+        local_model_path = os.path.join(local_model_dir, MODEL_FILENAME)
+        
+        # If model already exists locally, use it
+        if os.path.exists(local_model_path):
+            print(f"Model found locally at {local_model_path}")
+            return local_model_path
+        
+        # Otherwise download from Hugging Face
+        print(f"Downloading model from Hugging Face: {HF_REPO_ID}/{MODEL_FILENAME}")
+        model_path = hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename=MODEL_FILENAME,
+            cache_dir=local_model_dir,
+            force_filename=MODEL_FILENAME
+        )
+        print(f"Model downloaded successfully to {model_path}")
+        return model_path
+        
+    except Exception as e:
+        print(f"Error downloading model: {e}")
+        return None
+
+
 def load_model():
     """Load the YOLO model"""
     global model
     try:
-        model_path = os.path.join(os.path.dirname(__file__), '..', 'defect_test_models', 'best.pt')
+        model_path = ensure_model_exists()
+        
+        if model_path is None:
+            raise Exception("Could not obtain model path")
+        
         model = YOLO(model_path)
         print(f"Model loaded successfully from {model_path}")
         return True
@@ -40,19 +83,23 @@ def load_model():
         print(f"Error loading model: {e}")
         return False
 
+
 @app.on_event("startup")
 async def startup_event():
     """Load model on startup"""
     if not load_model():
         raise Exception("Failed to load YOLO model")
 
+
 @app.get("/")
 async def root():
     return {"message": "Defect Detection API is running"}
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "model_loaded": model is not None}
+
 
 @app.post("/predict")
 async def predict_defects(file: UploadFile = File(...)):
@@ -133,6 +180,7 @@ async def predict_defects(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
+
 @app.get("/model-info")
 async def get_model_info():
     """Get information about the loaded model"""
@@ -145,6 +193,7 @@ async def get_model_info():
         "num_classes": len(DEFECT_CLASSES),
         "model_path": "best.pt"
     }
+
 
 @app.get("/test-images/{filename}")
 async def get_test_image(filename: str):
@@ -168,6 +217,7 @@ async def get_test_image(filename: str):
         raise HTTPException(status_code=404, detail="Test image not found")
     
     return FileResponse(test_images_path, media_type="image/jpeg")
+
 
 @app.get("/test-images")
 async def list_test_images():
@@ -196,6 +246,7 @@ async def list_test_images():
             })
     
     return {"images": images}
+
 
 @app.post("/batch-predict")
 async def batch_predict(files: List[UploadFile] = File(...)):
@@ -255,10 +306,7 @@ async def batch_predict(files: List[UploadFile] = File(...)):
     
     return {"results": results}
 
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

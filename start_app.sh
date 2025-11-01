@@ -1,5 +1,6 @@
 echo "🚀 Starting Defect Detection Application..."
 
+
 if ! command -v python3 &> /dev/null; then
     echo "❌ Python3 is not installed. Please install Python3 first."
     exit 1
