@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://defect-detection-backend-api.onrender.com';
 
 export interface DetectionResult {
   id: number;
