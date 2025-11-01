@@ -1,4 +1,4 @@
-defect_test_models/NEU-DET/
+#defect_test_models/NEU-DET/
 *.zip
 
 backend/venv/
@@ -14,10 +14,10 @@ __pycache__/
 *.so
 .Python
 
-# Training outputs - specific subdirectories only
-defect_test_models/runs/
-defect_test_models/test_results/
-defect_test_models/NEU-DET/
+# Training outputs - temporarily commented
+#defect_test_models/runs/
+#defect_test_models/test_results/
+#defect_test_models/NEU-DET/
 
 # Jupyter
 .ipynb_checkpoints/
