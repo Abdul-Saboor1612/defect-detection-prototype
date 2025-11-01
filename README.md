@@ -2,6 +2,8 @@
 
 A complete web application for AI-powered defect detection using YOLO (You Only Look Once) deep learning model. The application consists of a React frontend and FastAPI backend that work together to provide real-time defect detection capabilities. 
 
+Download the test images from ```test_images/``` and try out the working of website at: [Website Link](https://ainspect.netlify.app/)
+
 ## Model Trainig Script - [link](https://github.com/Abdul-Saboor1612/defect_detection_model)
 
 ## 🏗️ Architecture
